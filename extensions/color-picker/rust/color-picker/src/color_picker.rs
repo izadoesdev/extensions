@@ -7,7 +7,6 @@ use lib::drawing;
 use raycast_rust_macros::raycast;
 use serde::Serialize;
 use std::mem;
-use std::sync::atomic::{AtomicBool, Ordering};
 use windows::{
     core::w,
     Win32::{
@@ -19,8 +18,6 @@ use windows::{
         UI::WindowsAndMessaging::*,
     },
 };
-
-static PICKER_RUNNING: AtomicBool = AtomicBool::new(false);
 
 static mut PREVIEW_HEIGHT: i32 = 0;
 static mut TOTAL_HEIGHT: i32 = WINDOW_SIZE;
@@ -214,11 +211,6 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
         // Make process DPI-aware so coordinates match screen pixels
         let _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-        // Prevent multiple instances
-        if PICKER_RUNNING.swap(true, Ordering::SeqCst) {
-            return Ok(None);
-        }
-
         // Initialize GDI+ for anti-aliased drawing
         let gdip_input = GdiplusStartupInput {
             GdiplusVersion: 1,
@@ -357,9 +349,6 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
 
         // Shutdown GDI+
         GdiplusShutdown(GDIP_TOKEN);
-
-        // Release the running guard
-        PICKER_RUNNING.store(false, Ordering::SeqCst);
 
         if CANCELLED {
             return Ok(None);
