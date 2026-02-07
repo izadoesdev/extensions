@@ -1,3 +1,9 @@
+mod lib;
+
+use lib::colors::RgbColor;
+use lib::constants::*;
+use lib::cursor;
+use lib::drawing;
 use raycast_rust_macros::raycast;
 use serde::Serialize;
 use std::mem;
@@ -7,21 +13,17 @@ use windows::{
     Win32::{
         Foundation::*,
         Graphics::Gdi::*,
+        Graphics::GdiPlus::{GdiplusShutdown, GdiplusStartup, GdiplusStartupInput},
         System::LibraryLoader::GetModuleHandleW,
         UI::HiDpi::{SetProcessDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2},
-        UI::Input::KeyboardAndMouse::*,
         UI::WindowsAndMessaging::*,
     },
 };
 
 static PICKER_RUNNING: AtomicBool = AtomicBool::new(false);
 
-const ZOOM: i32 = 8;
-const CAPTURE_SIZE: i32 = 19; // odd number for a center pixel
-const LOUPE_SIZE: i32 = CAPTURE_SIZE * ZOOM; // 152px
-const BORDER_W: i32 = 3;
-const WINDOW_SIZE: i32 = LOUPE_SIZE + BORDER_W * 2; // 158px
-const CROSSHAIR_HALF: i32 = ZOOM / 2;
+static mut PREVIEW_HEIGHT: i32 = 0;
+static mut TOTAL_HEIGHT: i32 = WINDOW_SIZE;
 
 static mut PICKED_COLOR: Option<(u8, u8, u8)> = None;
 static mut CANCELLED: bool = false;
@@ -31,6 +33,7 @@ static mut SNAP_DC: HDC = unsafe { mem::zeroed() };
 static mut SNAP_BMP: HBITMAP = unsafe { mem::zeroed() };
 static mut SNAP_OLD: HGDIOBJ = unsafe { mem::zeroed() };
 static mut SNAP_PIXEL: COLORREF = COLORREF(0);
+static mut GDIP_TOKEN: usize = 0;
 
 /// Window procedure for the magnifier loupe overlay.
 unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -65,7 +68,7 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                     lx,
                     ly,
                     WINDOW_SIZE,
-                    WINDOW_SIZE,
+                    TOTAL_HEIGHT,
                     SWP_NOACTIVATE | SWP_SHOWWINDOW,
                 );
                 let _ = InvalidateRect(Some(hwnd), None, false);
@@ -77,12 +80,12 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
 
                 // Create memory DC for compositing
                 let hmem_dc = CreateCompatibleDC(Some(hdc));
-                let hbmp = CreateCompatibleBitmap(hdc, WINDOW_SIZE, WINDOW_SIZE);
+                let hbmp = CreateCompatibleBitmap(hdc, WINDOW_SIZE, TOTAL_HEIGHT);
                 let hold = SelectObject(hmem_dc, hbmp.into());
 
                 // Fill background with border color
                 let border_brush = CreateSolidBrush(COLORREF(0x00444444));
-                let bg_rect = RECT { left: 0, top: 0, right: WINDOW_SIZE, bottom: WINDOW_SIZE };
+                let bg_rect = RECT { left: 0, top: 0, right: WINDOW_SIZE, bottom: TOTAL_HEIGHT };
                 let _ = FillRect(hmem_dc, &bg_rect, border_brush);
                 let _ = DeleteObject(border_brush.into());
 
@@ -103,42 +106,69 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
                 );
 
                 // Draw crosshair around the center pixel
-                let center = WINDOW_SIZE / 2;
-                let cross_left = center - CROSSHAIR_HALF;
-                let cross_top = center - CROSSHAIR_HALF;
-
-                // Outer dark rect (border of the selected pixel)
-                let dark_pen = CreatePen(PS_SOLID, 2, COLORREF(0x00000000));
-                let old_pen = SelectObject(hmem_dc, dark_pen.into());
-                let null_brush = GetStockObject(NULL_BRUSH);
-                let old_brush = SelectObject(hmem_dc, null_brush);
-                let _ = Rectangle(hmem_dc, cross_left - 1, cross_top - 1, cross_left + ZOOM + 1, cross_top + ZOOM + 1);
-
-                // Inner white rect
-                let white_pen = CreatePen(PS_SOLID, 1, COLORREF(0x00FFFFFF));
-                SelectObject(hmem_dc, white_pen.into());
-                let _ = Rectangle(hmem_dc, cross_left, cross_top, cross_left + ZOOM, cross_top + ZOOM);
-
-                SelectObject(hmem_dc, old_pen);
-                SelectObject(hmem_dc, old_brush);
-                let _ = DeleteObject(dark_pen.into());
-                let _ = DeleteObject(white_pen.into());
+                drawing::draw_crosshair(hmem_dc);
 
                 // Remove clip region so we can draw the border ring
                 SelectClipRgn(hmem_dc, None);
 
-                // Draw circular border ring
-                let border_pen = CreatePen(PS_SOLID, BORDER_W, COLORREF(0x00444444));
-                let old_pen2 = SelectObject(hmem_dc, border_pen.into());
-                let null_brush2 = GetStockObject(NULL_BRUSH);
-                let old_brush2 = SelectObject(hmem_dc, null_brush2);
-                let _ = Ellipse(hmem_dc, BORDER_W / 2, BORDER_W / 2, WINDOW_SIZE - BORDER_W / 2, WINDOW_SIZE - BORDER_W / 2);
-                SelectObject(hmem_dc, old_pen2);
-                SelectObject(hmem_dc, old_brush2);
-                let _ = DeleteObject(border_pen.into());
+                // Draw circular border ring using GDI+ for anti-aliasing
+                drawing::draw_border_ring(hmem_dc);
+
+                // --- Color preview rectangle below the loupe ---
+                // Get pixel color and prepare text
+                let color = RgbColor::from_colorref(SNAP_PIXEL);
+                let hex_text = color.to_hex_string();
+                let mut wide: Vec<u16> = hex_text.encode_utf16().collect();
+
+                // Create high-quality Segoe UI font with anti-aliasing
+                let hfont = drawing::create_ui_font();
+                let old_font = SelectObject(hmem_dc, hfont.into());
+
+                let mut text_size = SIZE { cx: 0, cy: 0 };
+                let _ = GetTextExtentPoint32W(hmem_dc, &wide, &mut text_size);
+
+                // Calculate preview rectangle size with padding
+                let preview_width = text_size.cx + PREVIEW_PADDING_H * 2;
+                let preview_height = text_size.cy + PREVIEW_PADDING_V * 2;
+                let preview_left = (WINDOW_SIZE - preview_width) / 2;
+                let preview_top = WINDOW_SIZE + PREVIEW_GAP;
+
+                // Update global height for window positioning (include border expansion)
+                PREVIEW_HEIGHT = preview_height;
+                TOTAL_HEIGHT = WINDOW_SIZE + PREVIEW_GAP + preview_height + PREVIEW_BORDER + 1;
+
+                let preview_rect = RECT {
+                    left: preview_left,
+                    top: preview_top,
+                    right: preview_left + preview_width,
+                    bottom: preview_top + preview_height,
+                };
+
+                // Draw colored preview rectangle with rounded corners
+                drawing::draw_preview_rect(hmem_dc, &preview_rect, &color);
+
+                // Determine text color based on background luminance
+                let txt_clr = color.text_color();
+
+                SetBkMode(hmem_dc, TRANSPARENT);
+                SetTextColor(hmem_dc, txt_clr);
+
+                let mut text_rect = preview_rect;
+                let _ = DrawTextW(
+                    hmem_dc,
+                    &mut wide,
+                    &mut text_rect,
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+                );
+
+                SelectObject(hmem_dc, old_font);
+                let _ = DeleteObject(hfont.into());
+
+                // Update window region dynamically based on text size
+                drawing::update_window_region(hwnd, &preview_rect);
 
                 // Blit composited result to window
-                let _ = BitBlt(hdc, 0, 0, WINDOW_SIZE, WINDOW_SIZE, Some(hmem_dc), 0, 0, SRCCOPY);
+                let _ = BitBlt(hdc, 0, 0, WINDOW_SIZE, TOTAL_HEIGHT, Some(hmem_dc), 0, 0, SRCCOPY);
 
                 SelectObject(hmem_dc, hold);
                 let _ = DeleteObject(hbmp.into());
@@ -151,23 +181,12 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
             WM_LBUTTONDOWN | WM_RBUTTONDOWN => {
                 if msg == WM_LBUTTONDOWN {
                     // Use cached pixel color (not live GetPixel which would capture the loupe)
-                    let pixel = SNAP_PIXEL;
-                    let r = (pixel.0 & 0xFF) as u8;
-                    let g = ((pixel.0 >> 8) & 0xFF) as u8;
-                    let b = ((pixel.0 >> 16) & 0xFF) as u8;
-                    PICKED_COLOR = Some((r, g, b));
+                    let color = RgbColor::from_colorref(SNAP_PIXEL);
+                    PICKED_COLOR = Some((color.r, color.g, color.b));
                 } else {
                     CANCELLED = true;
                 }
                 PostQuitMessage(0);
-                LRESULT(0)
-            }
-            WM_KEYDOWN => {
-                let vk = wparam.0 as u32;
-                if vk == VK_ESCAPE.0 as u32 {
-                    CANCELLED = true;
-                    PostQuitMessage(0);
-                }
                 LRESULT(0)
             }
             WM_DESTROY => {
@@ -200,8 +219,21 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
             return Ok(None);
         }
 
+        // Initialize GDI+ for anti-aliased drawing
+        let gdip_input = GdiplusStartupInput {
+            GdiplusVersion: 1,
+            ..Default::default()
+        };
+        let mut token: usize = 0;
+        GdiplusStartup(&mut token, &gdip_input, std::ptr::null_mut());
+        GDIP_TOKEN = token;
+
         PICKED_COLOR = None;
         CANCELLED = false;
+
+        // Initialize preview dimensions
+        PREVIEW_HEIGHT = 30;
+        TOTAL_HEIGHT = WINDOW_SIZE + PREVIEW_GAP + PREVIEW_HEIGHT + PREVIEW_BORDER + 1;
 
         // Create snapshot DC for caching screen captures
         let hscreen_dc = GetDC(None);
@@ -244,7 +276,7 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
             WS_POPUP,
             initial_x, initial_y,
             WINDOW_SIZE,
-            WINDOW_SIZE,
+            TOTAL_HEIGHT,
             None,
             None,
             Some(hinstance),
@@ -252,11 +284,7 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
         ).map_err(|e| e.to_string())?;
 
         // Make the window semi-opaque
-        let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), 255, LWA_ALPHA);
-
-        // Set circular window region
-        let rgn = CreateEllipticRgn(0, 0, WINDOW_SIZE, WINDOW_SIZE);
-        SetWindowRgn(hwnd, Some(rgn), true);
+        let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), ALPHA_OPAQUE, LWA_ALPHA);
 
         // Exclude loupe from screen capture so it doesn't capture itself
         let _ = SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
@@ -293,19 +321,17 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
         ).map_err(|e| e.to_string())?;
 
         // Fully transparent input window
-        let _ = SetLayeredWindowAttributes(input_hwnd, COLORREF(0), 1, LWA_ALPHA);
+        let _ = SetLayeredWindowAttributes(input_hwnd, COLORREF(0), ALPHA_TRANSPARENT, LWA_ALPHA);
 
         let _ = ShowWindow(input_hwnd, SW_SHOWNOACTIVATE);
         let _ = ShowWindow(hwnd, SW_SHOWNOACTIVATE);
 
+
         // Hide the real cursor
-        let mut counter = ShowCursor(false);
-        while counter >= 0 {
-            counter = ShowCursor(false);
-        }
+        cursor::hide_cursor();
 
         // Start a timer to update position ~60fps
-        let _ = SetTimer(Some(hwnd), 1, 16, None);
+        let _ = SetTimer(Some(hwnd), TIMER_ID, TIMER_INTERVAL_MS, None);
 
         // Message loop
         let mut msg = MSG::default();
@@ -315,7 +341,7 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
         }
 
         // Cleanup
-        let _ = KillTimer(Some(hwnd), 1);
+        let _ = KillTimer(Some(hwnd), TIMER_ID);
         let _ = DestroyWindow(hwnd);
         let _ = DestroyWindow(input_hwnd);
         let _ = UnregisterClassW(class_name, Some(hinstance));
@@ -327,10 +353,10 @@ fn pick_color() -> std::result::Result<Option<Color>, String> {
         let _ = DeleteDC(SNAP_DC);
 
         // Restore cursor
-        counter = ShowCursor(true);
-        while counter < 0 {
-            counter = ShowCursor(true);
-        }
+        cursor::show_cursor();
+
+        // Shutdown GDI+
+        GdiplusShutdown(GDIP_TOKEN);
 
         // Release the running guard
         PICKER_RUNNING.store(false, Ordering::SeqCst);
