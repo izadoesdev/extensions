@@ -53,20 +53,22 @@ export default function Command() {
         extractColor = extractColorRust;
       }
 
-      extractColor(path, 40, false) // Set dominantOnly to true
-        .then((colors: FinalColor[]) => {
-          setColors(colors);
-          toast.style = Toast.Style.Success;
-          toast.title = "Colors extracted";
-          toast.message = `${colors.length} colors extracted from the image`;
-          setIsLoading(false);
-        })
-        .catch(() => {
-          setIsLoading(false);
-          toast.style = Toast.Style.Failure;
-          toast.title = "Error extracting colors";
-          toast.message = "Please select a valid image file";
-        });
+      // Set dominantOnly to true
+      try {
+        const colors = await extractColor(path, 40, false);
+
+        setColors(colors);
+        toast.style = Toast.Style.Success;
+        toast.title = "Colors extracted";
+        toast.message = `${colors.length} colors extracted from the image`;
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error extracting colors:", error);
+        setIsLoading(false);
+        toast.style = Toast.Style.Failure;
+        toast.title = "Error extracting colors";
+        toast.message = "Please select a valid image file";
+      }
     } else {
       setIsLoading(false);
       setInfo({

@@ -8,7 +8,7 @@ name = "extract_color"
 path = "src/extract-color.rs"
 
 [dependencies]
-image = "0.25"
+image = "0.25.9"
 raycast-rust-macros = { git = "https://github.com/raycast/extensions-rust-tools", package = "raycast-rust-macros", branch = "main" }
 raycast-rust-runtime = { git = "https://github.com/raycast/extensions-rust-tools", package = "raycast-rust-runtime", branch = "main" }
 serde = { version = "1.0", features = ["derive"] }

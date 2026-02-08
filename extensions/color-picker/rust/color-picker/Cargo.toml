@@ -8,7 +8,7 @@ name = "color_picker"
 path = "src/color_picker.rs"
 
 [dependencies]
-windows = { version = "0.61.3", features = [
+windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_Graphics_GdiPlus",
