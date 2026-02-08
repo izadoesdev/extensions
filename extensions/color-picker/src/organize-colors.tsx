@@ -75,7 +75,13 @@ export default function Command() {
 
 function Actions({ historyItem }: { historyItem: HistoryItem }) {
   const { remove, clear, edit } = useHistory();
-  const { data: frontmostApp } = usePromise(getFrontmostApplication, []);
+  const { data: frontmostApp } = usePromise(async () => {
+    try {
+      return await getFrontmostApplication();
+    } catch {
+      return null;
+    }
+  }, []);
 
   const color = historyItem.color;
   const formattedColor = getFormattedColor(color);
