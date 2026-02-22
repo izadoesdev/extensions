@@ -1,6 +1,6 @@
 # FineTune Changelog
 
-## [Initial Release] - 2026-02-21
+## [Initial Release] - {PR_MERGE_DATE}
 
 - Output Devices command: list apps and output devices, set volume, mute, reset, route to device
 - Reset All to 100% command: reset all apps to 100% volume and unmute
