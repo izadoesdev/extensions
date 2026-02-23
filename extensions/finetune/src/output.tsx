@@ -77,11 +77,6 @@ function volumeAccessories(percent: number): { text: string }[] {
   return [{ text: `${percent}% ${bar}` }];
 }
 
-interface Preferences {
-  defaultDeviceUID?: string;
-  deviceUIDOverrides?: string;
-}
-
 /** Parse "Device Name=UID" lines into { "Device Name": "UID" }. Splits on first "=". */
 function parseDeviceUIDOverrides(
   raw: string | undefined,
@@ -383,7 +378,7 @@ function AppActions({
 
 export default function OutputCommand() {
   const { push } = useNavigation();
-  const prefs = getPreferenceValues<Preferences>();
+  const prefs = getPreferenceValues();
   const deviceUID = (prefs.defaultDeviceUID ?? "").trim();
   const deviceUIDOverrides = useMemo(
     () => parseDeviceUIDOverrides(prefs.deviceUIDOverrides),
