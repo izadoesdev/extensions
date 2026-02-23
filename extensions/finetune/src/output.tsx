@@ -287,7 +287,7 @@ function AppActions({
         />
       </ActionPanel.Submenu>
       <Action
-        title="Volume up"
+        title="Volume Up"
         icon="arrow-up-16"
         onAction={() =>
           run(

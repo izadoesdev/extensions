@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "finetune",
   "title": "FineTune",
-  "description": "FineTune manage audio",
+  "description": "Manage per-app audio with FineTune",
   "icon": "finetune-icon.png",
   "license": "MIT",
   "commands": [
@@ -24,7 +24,7 @@
       "name": "defaultDeviceUID",
       "type": "textfield",
       "required": false,
-      "title": "Default device UID",
+      "title": "Default Device UID",
       "description": "Optional. Used for the 'Default device' option in Route to Device.",
       "placeholder": "Paste device UID"
     },
