@@ -140,7 +140,7 @@ export function WebsiteAnalytics({ site, preset }: { site: Website; preset: Date
           {referrers.map((r) => (
             <List.Item
               key={r.name}
-              icon={getFavicon(`https://${r.name}`, { fallback: Icon.Link })}
+              icon={r.domain ? getFavicon(`https://${r.domain}`, { fallback: Icon.Link }) : Icon.Link}
               title={r.name}
               accessories={[
                 { text: `${fmt(r.visitors)} visitors` },

@@ -57,6 +57,7 @@ export async function fetchLinkReferrers(linkId: string, preset: DatePreset): Pr
   const results = await query(linkId, ["link_top_referrers"], preset, 10, undefined, "link_id");
   return (findParam(results, "link_top_referrers")?.data ?? []).map((r) => ({
     name: (r.name as string) ?? "",
+    domain: (r.domain as string) ?? "",
     clicks: (r.clicks as number) ?? 0,
   }));
 }

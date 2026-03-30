@@ -24,6 +24,7 @@ export interface PageEntry {
 
 export interface ReferrerEntry {
   name: string;
+  domain: string;
   pageviews: number;
   visitors: number;
   percentage: number;

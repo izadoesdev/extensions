@@ -56,6 +56,7 @@ export interface LinkClicksByDay {
 
 export interface LinkReferrerEntry {
   name: string;
+  domain: string;
   clicks: number;
 }
 

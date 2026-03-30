@@ -85,7 +85,7 @@ export function LinkAnalytics({ link, preset }: { link: Link; preset: DatePreset
           {referrers.map((r) => (
             <List.Item
               key={r.name}
-              icon={getFavicon(`https://${r.name}`, { fallback: Icon.Link })}
+              icon={r.domain ? getFavicon(`https://${r.domain}`, { fallback: Icon.Link }) : Icon.Link}
               title={r.name}
               accessories={[{ text: `${fmt(r.clicks)} clicks` }]}
               actions={actions}

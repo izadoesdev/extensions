@@ -70,6 +70,7 @@ export async function fetchReferrers(websiteId: string, preset: DatePreset): Pro
   const results = await query(websiteId, ["top_referrers"], preset, 10);
   return (findParam(results, "top_referrers")?.data ?? []).map((r) => ({
     name: (r.name as string) ?? "",
+    domain: (r.domain as string) ?? "",
     pageviews: (r.pageviews as number) ?? 0,
     visitors: (r.visitors as number) ?? 0,
     percentage: (r.percentage as number) ?? 0,
