@@ -1,5 +1,5 @@
 import { Action, ActionPanel, Color, Detail, Icon, List } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getFavicon, useCachedPromise } from "@raycast/utils";
 import {
   fetchLinkBrowsers,
   fetchLinkClicksByDay,
@@ -11,7 +11,7 @@ import {
 } from "../../api";
 import type { DatePreset, Link } from "../../types";
 import { renderLinkChart } from "../../lib/chart";
-import { countryFlag, fmt, getFaviconUrl } from "../../lib/utils";
+import { countryFlag, fmt } from "../../lib/utils";
 
 function LinkChartView({ link, preset }: { link: Link; preset: DatePreset }) {
   const { data, isLoading } = useCachedPromise(fetchLinkClicksByDay, [link.id, preset], {
@@ -85,7 +85,7 @@ export function LinkAnalytics({ link, preset }: { link: Link; preset: DatePreset
           {referrers.map((r) => (
             <List.Item
               key={r.name}
-              icon={{ source: getFaviconUrl(r.name), fallback: Icon.Link }}
+              icon={getFavicon(`https://${r.name}`, { fallback: Icon.Link })}
               title={r.name}
               accessories={[{ text: `${fmt(r.clicks)} clicks` }]}
               actions={actions}

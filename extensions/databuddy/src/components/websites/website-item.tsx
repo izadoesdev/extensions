@@ -1,8 +1,8 @@
 import { Action, ActionPanel, Alert, Color, confirmAlert, Icon, List, showToast, Toast } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getFavicon, useCachedPromise } from "@raycast/utils";
 import { DASHBOARD_URL, deleteWebsite, fetchSummary } from "../../api";
 import type { DatePreset, Website } from "../../types";
-import { bounceColor, dur, fmt, getFaviconUrl } from "../../lib/utils";
+import { bounceColor, dur, fmt } from "../../lib/utils";
 import { EditWebsite } from "./edit-website";
 import { WebsiteAnalytics } from "./website-analytics";
 
@@ -34,7 +34,7 @@ export function WebsiteItem({ site, preset, onMutate }: { site: Website; preset:
   return (
     <List.Item
       id={site.id}
-      icon={{ source: getFaviconUrl(site.domain), fallback: Icon.Globe }}
+      icon={getFavicon(`https://${site.domain}`, { fallback: Icon.Globe })}
       title={site.name}
       subtitle={site.domain}
       detail={

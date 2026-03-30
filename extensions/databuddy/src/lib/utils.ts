@@ -21,10 +21,6 @@ export function bounceColor(rate: number): Color {
   return Color.Red;
 }
 
-export function getFaviconUrl(domain: string): string {
-  return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-}
-
 export function countryFlag(code: string): string {
   if (!code || code.length !== 2) return "🌍";
   return code

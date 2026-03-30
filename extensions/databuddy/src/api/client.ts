@@ -9,7 +9,7 @@ export const SHORT_LINK_HOST = "dby.sh";
 const QUERY_BASE = `${API_BASE}/v1`;
 
 function getHeaders(): Record<string, string> {
-  const { apiKey } = getPreferenceValues<{ apiKey: string }>();
+  const { apiKey } = getPreferenceValues<Preferences>();
   return { "x-api-key": apiKey, "Content-Type": "application/json" };
 }
 

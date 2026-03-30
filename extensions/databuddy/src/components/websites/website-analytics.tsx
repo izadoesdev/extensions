@@ -1,9 +1,9 @@
 import { Action, ActionPanel, Color, Detail, Icon, List } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getFavicon, useCachedPromise } from "@raycast/utils";
 import { DASHBOARD_URL, fetchCountries, fetchReferrers, fetchSummary, fetchTimeSeries, fetchTopPages } from "../../api";
 import type { DatePreset, QueryFilter, Website } from "../../types";
 import { renderChart } from "../../lib/chart";
-import { bounceColor, countryFlag, dur, fmt, getFaviconUrl } from "../../lib/utils";
+import { bounceColor, countryFlag, dur, fmt } from "../../lib/utils";
 
 function ChartView({ site, preset, filters, title }: ChartProps) {
   const { data, isLoading } = useCachedPromise(fetchTimeSeries, [site.id, preset, filters], {
@@ -140,7 +140,7 @@ export function WebsiteAnalytics({ site, preset }: { site: Website; preset: Date
           {referrers.map((r) => (
             <List.Item
               key={r.name}
-              icon={{ source: getFaviconUrl(r.name), fallback: Icon.Link }}
+              icon={getFavicon(`https://${r.name}`, { fallback: Icon.Link })}
               title={r.name}
               accessories={[
                 { text: `${fmt(r.visitors)} visitors` },

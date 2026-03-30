@@ -1,8 +1,8 @@
 import { Action, ActionPanel, Alert, Color, confirmAlert, Icon, List, showToast, Toast } from "@raycast/api";
-import { useCachedPromise } from "@raycast/utils";
+import { getFavicon, useCachedPromise } from "@raycast/utils";
 import { DASHBOARD_URL, deleteLink, fetchLinkClicks, SHORT_LINK_HOST } from "../../api";
 import type { DatePreset, Link } from "../../types";
-import { fmt, getFaviconUrl } from "../../lib/utils";
+import { fmt } from "../../lib/utils";
 import { EditLink } from "./edit-link";
 import { LinkAnalytics } from "./link-analytics";
 
@@ -45,7 +45,7 @@ export function LinkItem({ link, preset, onMutate }: { link: Link; preset: DateP
   return (
     <List.Item
       id={link.id}
-      icon={{ source: domain ? getFaviconUrl(domain) : Icon.Link, fallback: Icon.Link }}
+      icon={domain ? getFavicon(`https://${domain}`, { fallback: Icon.Link }) : Icon.Link}
       title={link.name}
       subtitle={`/${link.slug}`}
       detail={
