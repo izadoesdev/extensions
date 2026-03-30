@@ -1,8 +1,10 @@
 import { Action, ActionPanel, Form, Icon, popToRoot, showToast, Toast, type LaunchProps } from "@raycast/api";
-import { useForm } from "@raycast/utils";
-import { createFlag, DASHBOARD_URL } from "./api";
+import { useCachedPromise, useForm } from "@raycast/utils";
+import { createFlag, DASHBOARD_URL, fetchWebsites } from "./api";
+import type { Website } from "./types";
 
 interface FormValues {
+  websiteId: string;
   key: string;
   name: string;
   description: string;
@@ -14,8 +16,11 @@ interface FormValues {
 }
 
 export default function Command(props: LaunchProps<{ draftValues: FormValues }>) {
+  const { data: websites, isLoading: loadingWebsites } = useCachedPromise(fetchWebsites);
+
   const { handleSubmit, itemProps } = useForm<FormValues>({
     initialValues: {
+      websiteId: "",
       type: "boolean",
       status: "inactive",
       defaultValue: false,
@@ -25,7 +30,9 @@ export default function Command(props: LaunchProps<{ draftValues: FormValues }>)
     async onSubmit(values) {
       const toast = await showToast({ style: Toast.Style.Animated, title: "Creating flag…" });
       try {
-        const flag = await createFlag({
+        const siteId = values.websiteId || websites?.[0]?.id;
+        if (!siteId) throw new Error("No website selected.");
+        const flag = await createFlag(siteId, {
           key: values.key.trim(),
           ...(values.name?.trim() ? { name: values.name.trim() } : {}),
           ...(values.description?.trim() ? { description: values.description.trim() } : {}),
@@ -60,6 +67,7 @@ export default function Command(props: LaunchProps<{ draftValues: FormValues }>)
 
   return (
     <Form
+      isLoading={loadingWebsites}
       enableDrafts
       searchBarAccessory={<Form.LinkAccessory target={DASHBOARD_URL} text="Open Dashboard" />}
       actions={
@@ -68,6 +76,14 @@ export default function Command(props: LaunchProps<{ draftValues: FormValues }>)
         </ActionPanel>
       }
     >
+      <Form.Dropdown title="Website" info="The website this flag belongs to" {...itemProps.websiteId}>
+        {websites?.map((site: Website) => (
+          <Form.Dropdown.Item key={site.id} title={`${site.name} (${site.domain})`} value={site.id} />
+        ))}
+      </Form.Dropdown>
+
+      <Form.Separator />
+
       <Form.Description text="Create a new feature flag to control rollouts with Databuddy." />
       <Form.TextField
         title="Key"

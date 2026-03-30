@@ -1,10 +1,26 @@
 import { Action, ActionPanel, Icon, List, openExtensionPreferences } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
-import { DASHBOARD_URL, fetchFlags } from "./api";
+import { useState } from "react";
+import { DASHBOARD_URL, fetchFlags, fetchWebsites } from "./api";
+import type { Website } from "./types";
 import { FlagItem } from "./components/flags/flag-item";
 
 export default function Command() {
-  const { data: flags, isLoading, error, revalidate } = useCachedPromise(fetchFlags);
+  const { data: websites, isLoading: loadingWebsites, error: websitesError } = useCachedPromise(fetchWebsites);
+  const [websiteId, setWebsiteId] = useState<string>("");
+
+  const selectedId = websiteId || websites?.[0]?.id || "";
+  const {
+    data: flags,
+    isLoading: loadingFlags,
+    error: flagsError,
+    revalidate,
+  } = useCachedPromise(fetchFlags, [selectedId], {
+    execute: selectedId.length > 0,
+    keepPreviousData: true,
+  });
+
+  const error = websitesError || flagsError;
 
   if (error) {
     const isAuth = error.message.includes("Invalid API key");
@@ -26,7 +42,18 @@ export default function Command() {
   }
 
   return (
-    <List isLoading={isLoading} isShowingDetail searchBarPlaceholder="Search flags...">
+    <List
+      isLoading={loadingWebsites || loadingFlags}
+      isShowingDetail
+      searchBarPlaceholder="Search flags..."
+      searchBarAccessory={
+        <List.Dropdown tooltip="Website" value={selectedId} onChange={(v) => setWebsiteId(v)}>
+          {websites?.map((site: Website) => (
+            <List.Dropdown.Item key={site.id} title={`${site.name} (${site.domain})`} value={site.id} />
+          ))}
+        </List.Dropdown>
+      }
+    >
       {flags?.length === 0 && (
         <List.EmptyView
           icon={Icon.LightBulb}
