@@ -7,7 +7,8 @@
   "icon": "extension-icon.png",
   "author": "izadoesdev",
   "platforms": [
-    "macOS"
+    "macOS",
+    "Windows"
   ],
   "categories": [
     "Developer Tools",

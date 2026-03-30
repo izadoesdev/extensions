@@ -1,6 +1,6 @@
 # Databuddy
 
-Privacy-first web analytics & link shortener — view your websites, links, and analytics from Raycast.
+[Databuddy](https://databuddy.cc) is a privacy-first web analytics platform — view your websites, links, feature flags, and funnels from Raycast.
 
 ## Setup
 

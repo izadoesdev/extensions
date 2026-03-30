@@ -1,4 +1,4 @@
-export { DASHBOARD_URL, SHORT_LINK_HOST } from "./client";
+export { DASHBOARD_URL, LANDING_URL, SHORT_LINK_HOST } from "./client";
 export { fetchSummary, fetchTimeSeries, fetchTopPages, fetchReferrers, fetchCountries } from "./websites";
 export { fetchWebsites, fetchWebsite, createWebsite, updateWebsite, togglePublic, deleteWebsite } from "./websites";
 export {

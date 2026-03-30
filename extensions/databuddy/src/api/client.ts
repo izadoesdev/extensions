@@ -3,6 +3,7 @@ import type { QueryFilter } from "../types";
 
 export const API_BASE = "https://api.databuddy.cc";
 export const DASHBOARD_URL = "https://app.databuddy.cc";
+export const LANDING_URL = "https://databuddy.cc";
 export const SHORT_LINK_HOST = "dby.sh";
 
 const QUERY_BASE = `${API_BASE}/v1`;
