@@ -92,7 +92,7 @@ export function FlagItem({ flag, onMutate }: { flag: Flag; onMutate: () => void 
               {flag.createdAt && (
                 <List.Item.Detail.Metadata.Label
                   title="Created"
-                  text={new Date(flag.createdAt).toLocaleDateString()}
+                  text={new Date(flag.createdAt).toLocaleDateString("en-US")}
                   icon={Icon.Calendar}
                 />
               )}

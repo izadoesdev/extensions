@@ -72,7 +72,7 @@ export function LinkItem({ link, preset, onMutate }: { link: Link; preset: DateP
               {link.expiresAt && (
                 <List.Item.Detail.Metadata.Label
                   title="Expires"
-                  text={new Date(link.expiresAt).toLocaleDateString()}
+                  text={new Date(link.expiresAt).toLocaleDateString("en-US")}
                   icon={Icon.Clock}
                 />
               )}
@@ -83,7 +83,7 @@ export function LinkItem({ link, preset, onMutate }: { link: Link; preset: DateP
               {link.createdAt && (
                 <List.Item.Detail.Metadata.Label
                   title="Created"
-                  text={new Date(link.createdAt).toLocaleDateString()}
+                  text={new Date(link.createdAt).toLocaleDateString("en-US")}
                   icon={Icon.Calendar}
                 />
               )}

@@ -1,4 +1,4 @@
-# Databuddy Changelog
+# Databuddy
 
 ## [Initial Version] - {PR_MERGE_DATE}
 

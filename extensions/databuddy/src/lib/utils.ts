@@ -3,10 +3,10 @@ import { Color } from "@raycast/api";
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 
 export function fmt(n: number | undefined | null): string {
-  if (n == null) return "0";
+  if (n === null || n === undefined) return "0";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return n.toLocaleString();
+  return n.toLocaleString("en-US");
 }
 
 export function dur(seconds: number): string {

@@ -122,7 +122,7 @@ export default function Command() {
                   {funnel.createdAt && (
                     <List.Item.Detail.Metadata.Label
                       title="Created"
-                      text={new Date(funnel.createdAt).toLocaleDateString()}
+                      text={new Date(funnel.createdAt).toLocaleDateString("en-US")}
                       icon={Icon.Calendar}
                     />
                   )}
