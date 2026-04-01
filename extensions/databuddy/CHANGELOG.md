@@ -1,6 +1,6 @@
 # Databuddy
 
-## [Initial Version] - {PR_MERGE_DATE}
+## [Initial Version] - 2026-04-01
 
 - View all websites connected to your Databuddy account
 - Analytics overview with visitors, page views, sessions, bounce rate, and session duration
